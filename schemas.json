@@ -11,13 +11,14 @@
       }
     },
     "configure": {
-      "my-default-config": {
+      "default-config": {
         "type": "object",
         "properties": {
           "options": {
             "type" : "object",
             "properties" : {
               "broadcastInterval" : {
+                "title": "Broadcast Interval in ms",
                 "type" : "number",
                 "default": 100
               }
@@ -26,7 +27,6 @@
         }
       }
     },
-    "message": {
-    }
+    "message": {}
   }
 }

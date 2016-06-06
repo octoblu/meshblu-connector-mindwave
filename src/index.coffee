@@ -10,47 +10,47 @@ class Mindwave extends EventEmitter
     @DEFAULT_OPTIONS = broadcastInterval: 100
     debug 'Mindwave constructed'
 
+  isOnline: (callback) =>
+    callback null, running: true
+
   onMessage: (message) =>
     debug 'on message', message
 
   onConfig: (device) =>
     @options = device.options || @DEFAULT_OPTIONS
-    @setMindwave()
+
+    @throttledEmit = _.throttle(((payload) =>
+      debug 'throttled', payload
+      @emit 'message',
+        'devices': [ '*' ]
+        'payload': payload
+    ), @options.interval, 'leading': false)
     debug 'on config', @options
 
   start: (device) =>
     { @uuid } = device
     debug 'started', @uuid
     @onConfig device
+    @setMindwave()
 
   getMindwaveConnection: () =>
-    if !@connected
-      @client.connect()
-      @connected = true
+    return unless !@connected
+    @client.connect()
+    @connected = true
 
   setMindwave: () =>
-    if !@connected
-      debug 'connected to mindwave'
-      throttledEmit = _.throttle(((payload) ->
-        @emit 'message', payload
-      ), @options.broadcastInterval || 100)
+    debug 'connected to mindwave'
 
-      @client.on 'data', (result) ->
-        data =
-          devices: '*'
-          payload: result
-        throttledEmit data
+    @client.on 'data', (result) =>
+      @throttledEmit result
 
-      @client.on 'blink_data', (result) ->
-        data =
-          devices: '*'
-          payload: result
-        throttledEmit data
+    @client.on 'blink_data', (result) =>
+      @throttledEmit result
 
-      @getMindwaveConnection()
-      @client.on 'end', ->
-        @connected = false
-        console.error 'mindwave client disconnected'
+    @getMindwaveConnection()
+    @client.on 'end', ->
+      @connected = false
+      console.error 'mindwave client disconnected'
 
 
 module.exports = Mindwave
