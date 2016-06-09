@@ -1,56 +1,64 @@
+_               = require 'lodash'
 {EventEmitter}  = require 'events'
+MindwaveClient        = require './mindwave-client'
 debug           = require('debug')('meshblu-connector-mindwave:index')
-thinkgear       = require('node-thinkgear-sockets')
-_               = require('lodash')
 
 class Mindwave extends EventEmitter
   constructor: ->
-    @client = thinkgear.createClient(enableRawOutput: true)
     @connected = false
+    @connecting = false
     @DEFAULT_OPTIONS = broadcastInterval: 100
-    debug 'Mindwave constructed'
 
   isOnline: (callback) =>
-    callback null, running: true
+    callback null, { running: @connected }
 
-  onMessage: (message) =>
-    debug 'on message', message
+  onConfig: (device={}) =>
+    { broadcastInterval } = device.options ? {}
+    broadcastInterval ?= 100
+    @throttledEmit = _.throttle @emitMessage, broadcastInterval, { leading: false }
 
-  onConfig: (device) =>
-    @options = device.options || @DEFAULT_OPTIONS
-
-    @throttledEmit = _.throttle(((payload) =>
-      debug 'throttled', payload
-      @emit 'message',
-        'devices': [ '*' ]
-        'payload': payload
-    ), @options.interval, 'leading': false)
-    debug 'on config', @options
+  emitMessage: (eventName, payload={}) =>
+    debug 'throttled', { eventName, payload }
+    @emit 'message',
+      'devices': [ '*' ],
+      'topic': eventName,
+      'payload': payload
 
   start: (device) =>
-    { @uuid } = device
-    debug 'started', @uuid
     @onConfig device
-    @setMindwave()
+    @initMindwave()
 
-  getMindwaveConnection: () =>
-    return unless !@connected
-    @client.connect()
-    @connected = true
+  initMindwave: () =>
+    return debug 'connected' if @connected
+    return debug 'connecting' if @connecting
 
-  setMindwave: () =>
-    debug 'connected to mindwave'
+    @client = new MindwaveClient
+
+    @client.on 'connect', =>
+      debug 'connected'
+      @connecting = false
+      @connected = true
+
+    @client.on 'error', (error) =>
+      debug 'on error', error
+      @throttledEmit 'error', { error }
+
+    @client.on 'raw_data', (result) =>
+      @throttledEmit 'raw_data', result
 
     @client.on 'data', (result) =>
-      @throttledEmit result
+      @throttledEmit 'data', result
 
     @client.on 'blink_data', (result) =>
-      @throttledEmit result
+      @throttledEmit 'blink_data', result
 
-    @getMindwaveConnection()
-    @client.on 'end', ->
+    @client.on 'end', =>
+      @connecting = false
       @connected = false
-      console.error 'mindwave client disconnected'
+      debug 'mindwave client disconnected'
 
+    debug 'connecting to mindwave'
+    @client.connect()
+    @connecting = true
 
 module.exports = Mindwave

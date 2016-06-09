@@ -1,6 +1,6 @@
 {
   "name": "meshblu-connector-mindwave",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "description": "Meshblu Connector ",
   "homepage": "https://github.com/octoblu/mindwave",
   "bugs": "https://github.com/octoblu/mindwave/issues",
@@ -30,12 +30,11 @@
     "debug": "^2.2.0",
     "lodash": "^4.13.1",
     "meshblu-config": "^4.0.0",
-    "meshblu-connector-runner": "^6.0.0",
-    "node-thinkgear-sockets": "0.0.1"
+    "meshblu-connector-runner": "^6.0.0"
   },
   "meshbluConnector": {
     "githubSlug": "octoblu/meshblu-connector-mindwave",
-    "schemasUrl": "https://raw.githubusercontent.com/octoblu/meshblu-connector-mindwave/v1.0.3/schemas.json"
+    "schemasUrl": "https://raw.githubusercontent.com/octoblu/meshblu-connector-mindwave/v1.0.4/schemas.json"
   },
   "platformDependencies": {
     "darwin": [],
