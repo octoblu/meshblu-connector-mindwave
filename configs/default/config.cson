@@ -1,0 +1,41 @@
+title: "Default Configuration"
+type: "object"
+properties:
+  options:
+    title: "Options"
+    type: "object"
+    properties:
+      broadcastInterval:
+        title: "Broadcast Interval (in milliseconds)"
+        description: "Limit the broadcast of information to this interval, minimum 500ms"
+        type: "integer"
+        default: 500
+        minimum: 500
+    required: [
+      "broadcastInterval"
+    ]
+  events:
+    title: "Events"
+    type: "object"
+    properties:
+      blink:
+        title: "Stream Blink events"
+        type: "boolean"
+        default: true
+      data:
+        title: "Stream data events"
+        type: "boolean"
+        default: false
+      eeg:
+        title: "Stream EEG events"
+        type: "boolean"
+        default: false
+    required: [
+      'blink'
+      'data'
+      'eeg'
+    ]
+required: [
+  'options'
+  'events'
+]

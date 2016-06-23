@@ -1,0 +1,6 @@
+angular: [
+  { key: "options.broadcastInterval" }
+  { key: "events.blink" }
+  { key: "events.data" }
+  { key: "events.eeg" }
+]

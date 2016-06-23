@@ -1,64 +1,43 @@
-_               = require 'lodash'
 {EventEmitter}  = require 'events'
-MindwaveClient        = require './mindwave-client'
 debug           = require('debug')('meshblu-connector-mindwave:index')
+MindwaveManager = require './mindwave-manager'
 
-class Mindwave extends EventEmitter
+class Connector extends EventEmitter
   constructor: ->
-    @connected = false
-    @connecting = false
-    @DEFAULT_OPTIONS = broadcastInterval: 100
+    @mindwave = new MindwaveManager
+    @mindwave.on 'blink', @_onBlink
+    @mindwave.on 'data', @_onData
+    @mindwave.on 'eeg', @_onEEG
 
   isOnline: (callback) =>
-    callback null, { running: @connected }
+    @mindwave.isOnline (error, {running}) =>
+      callback null, {running}
 
-  onConfig: (device={}) =>
-    { broadcastInterval } = device.options ? {}
-    broadcastInterval ?= 100
-    @throttledEmit = _.throttle @emitMessage, broadcastInterval, { leading: false }
+  close: (callback) =>
+    debug 'on close'
+    callback()
 
-  emitMessage: (eventName, payload={}) =>
-    debug 'throttled', { eventName, payload }
-    @emit 'message',
-      'devices': [ '*' ],
-      'topic': eventName,
-      'payload': payload
+  _onBlink: (data) =>
+    data.event = 'blink'
+    @emit 'message', {devices: ['*'], data}
 
-  start: (device) =>
-    @onConfig device
-    @initMindwave()
+  _onData: (data) =>
+    data.event = 'data'
+    @emit 'message', {devices: ['*'], data}
 
-  initMindwave: () =>
-    return debug 'connected' if @connected
-    return debug 'connecting' if @connecting
+  _onEEG: (data) =>
+    data.event = 'eeg'
+    @emit 'message', {devices: ['*'], data}
 
-    @client = new MindwaveClient
+  onConfig: (device={}, callback=->) =>
+    { @options, @events } = device
+    debug 'on config', @options
+    { broadcastInterval } = @options ? {}
+    { blink, data, eeg } = @events ? {}
+    @mindwave.connect { broadcastInterval, eeg, blink, data }, callback
 
-    @client.on 'connect', =>
-      debug 'connected'
-      @connecting = false
-      @connected = true
+  start: (device, callback) =>
+    debug 'started'
+    @onConfig device, callback
 
-    @client.on 'error', (error) =>
-      debug 'on error', error
-      @throttledEmit 'error', { error }
-
-    @client.on 'raw_data', (result) =>
-      @throttledEmit 'raw_data', result
-
-    @client.on 'data', (result) =>
-      @throttledEmit 'data', result
-
-    @client.on 'blink_data', (result) =>
-      @throttledEmit 'blink_data', result
-
-    @client.on 'end', =>
-      @connecting = false
-      @connected = false
-      debug 'mindwave client disconnected'
-
-    debug 'connecting to mindwave'
-    @client.connect()
-    @connecting = true
-
-module.exports = Mindwave
+module.exports = Connector
